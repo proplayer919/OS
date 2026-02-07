@@ -9,6 +9,7 @@
 #include "sys/power.h"
 #include "sys/watchdog.h"
 #include "mm/heap.h"
+#include "graphics/gfx.h"
 
 #define SHELL_LINE_MAX 64
 #define SHELL_HISTORY_MAX 8
@@ -426,9 +427,72 @@ static void shell_help(void)
   terminal_writeln("  logs <service>  View service logs");
   terminal_writeln("  logs -t [name]  Tail logs (system or service)");
   terminal_writeln("  mem             Show heap stats");
+  terminal_writeln("  gfxdemo         Draw using gfx driver");
   terminal_writeln("  panic <msg>     Trigger panic screen");
   terminal_writeln("  reboot          Reboot the system");
   terminal_writeln("  shutdown        Power off (QEMU)");
+}
+
+static void shell_gfx_demo(void)
+{
+  gfx_display_t *display = gfx_open_display();
+  gfx_window_t window = gfx_create_simple_window(display, 0, 0, display->width, display->height);
+  gfx_gc_t gc = gfx_create_gc(display, 0x0F);
+
+  terminal_writeln("Entering gfx demo. Press any key to return.");
+  gfx_map_window(display, &window);
+
+  if (display && display->buffer)
+  {
+    for (uint16_t y = 0; y < display->height; ++y)
+    {
+      uint8_t color = (uint8_t)((y * 255u) / display->height);
+      for (uint16_t x = 0; x < display->width; ++x)
+      {
+        display->buffer[y * display->pitch + x] = color;
+      }
+    }
+  }
+
+  gfx_set_foreground(display, &gc, 0x1F);
+  gfx_draw_rect(display, &window, &gc, 4, 4, (uint16_t)(display->width - 8), (uint16_t)(display->height - 8));
+
+  for (uint16_t i = 0; i < 8; ++i)
+  {
+    uint16_t bar_width = (uint16_t)(display->width / 8);
+    uint16_t x = (uint16_t)(i * bar_width);
+    gfx_set_foreground(display, &gc, (uint8_t)(i * 32));
+    gfx_fill_rect(display, &window, &gc, (int16_t)x, 16, bar_width, 40);
+  }
+
+  gfx_set_foreground(display, &gc, 0xE3);
+  gfx_draw_line(display, &window, &gc, 0, 0, (int16_t)(display->width - 1), (int16_t)(display->height - 1));
+  gfx_set_foreground(display, &gc, 0x1C);
+  gfx_draw_line(display, &window, &gc, 0, (int16_t)(display->height - 1), (int16_t)(display->width - 1), 0);
+
+  gfx_flush(display);
+
+  for (uint8_t i = 0; i < 16; ++i)
+  {
+    if (keyboard_poll_key() == KEY_NONE)
+    {
+      break;
+    }
+    process_yield();
+  }
+
+  for (;;)
+  {
+    if (keyboard_poll_key() != KEY_NONE)
+    {
+      break;
+    }
+    process_yield();
+  }
+
+  gfx_unmap_window(display, &window);
+  terminal_init();
+  terminal_writeln("Exited gfx demo.");
 }
 
 static void shell_mem(void)
@@ -837,6 +901,12 @@ static void shell_handle_command(const char *line)
   if (str_eq(line, "mem"))
   {
     shell_mem();
+    return;
+  }
+
+  if (str_eq(line, "gfxdemo"))
+  {
+    shell_gfx_demo();
     return;
   }
 

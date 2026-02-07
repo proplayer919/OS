@@ -1,9 +1,11 @@
 #include "drivers/driver.h"
 #include "drivers/vga.h"
 #include "drivers/keyboard.h"
+#include "drivers/vga_gfx.h"
 
 static driver_t kdrivers[] = {
     {"vga", vga_init},
+    {"vga_gfx", vga_gfx_init},
     {"keyboard", keyboard_init},
 };
 
