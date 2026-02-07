@@ -433,11 +433,16 @@ static void shell_help(void)
   terminal_writeln("  shutdown        Power off (QEMU)");
 }
 
+static uint32_t rgb_color(uint8_t r, uint8_t g, uint8_t b)
+{
+  return ((uint32_t)r << 16) | ((uint32_t)g << 8) | b;
+}
+
 static void shell_gfx_demo(void)
 {
   gfx_display_t *display = gfx_open_display();
   gfx_window_t window = gfx_create_simple_window(display, 0, 0, display->width, display->height);
-  gfx_gc_t gc = gfx_create_gc(display, 0x0F);
+  gfx_gc_t gc = gfx_create_gc(display, rgb_color(240, 240, 240));
 
   terminal_writeln("Entering gfx demo. Press any key to return.");
   gfx_map_window(display, &window);
@@ -446,29 +451,48 @@ static void shell_gfx_demo(void)
   {
     for (uint16_t y = 0; y < display->height; ++y)
     {
-      uint8_t color = (uint8_t)((y * 255u) / display->height);
+      uint32_t row_base = (uint32_t)y * display->pitch;
       for (uint16_t x = 0; x < display->width; ++x)
       {
-        display->buffer[y * display->pitch + x] = color;
+        uint8_t tile = (uint8_t)(((x / 32u) + (y / 32u)) & 1u);
+        uint8_t r = (uint8_t)((x * 255u) / display->width);
+        uint8_t g = (uint8_t)((y * 255u) / display->height);
+        uint8_t b = (uint8_t)(((x + y) * 255u) / (display->width + display->height));
+        if (tile)
+        {
+          r = (uint8_t)(r / 2u);
+          g = (uint8_t)(g / 2u);
+          b = (uint8_t)(b / 2u);
+        }
+        else
+        {
+          r = (uint8_t)(r / 2u + 40u);
+          g = (uint8_t)(g / 2u + 20u);
+          b = (uint8_t)(b / 2u + 10u);
+        }
+        display->buffer[row_base + x] = rgb_color(r, g, b);
       }
     }
   }
 
-  gfx_set_foreground(display, &gc, 0x1F);
-  gfx_draw_rect(display, &window, &gc, 4, 4, (uint16_t)(display->width - 8), (uint16_t)(display->height - 8));
-
-  for (uint16_t i = 0; i < 8; ++i)
+  for (uint16_t i = 0; i < 6; ++i)
   {
-    uint16_t bar_width = (uint16_t)(display->width / 8);
-    uint16_t x = (uint16_t)(i * bar_width);
-    gfx_set_foreground(display, &gc, (uint8_t)(i * 32));
-    gfx_fill_rect(display, &window, &gc, (int16_t)x, 16, bar_width, 40);
+    uint16_t inset = (uint16_t)(8 + i * 10);
+    uint16_t w = (uint16_t)(display->width - inset * 2);
+    uint16_t h = (uint16_t)(display->height - inset * 2);
+    gfx_set_foreground(display, &gc, rgb_color((uint8_t)(240 - i * 20u), (uint8_t)(80 + i * 12u), (uint8_t)(140 + i * 8u)));
+    gfx_draw_rect(display, &window, &gc, (int16_t)inset, (int16_t)inset, w, h);
   }
 
-  gfx_set_foreground(display, &gc, 0xE3);
-  gfx_draw_line(display, &window, &gc, 0, 0, (int16_t)(display->width - 1), (int16_t)(display->height - 1));
-  gfx_set_foreground(display, &gc, 0x1C);
-  gfx_draw_line(display, &window, &gc, 0, (int16_t)(display->height - 1), (int16_t)(display->width - 1), 0);
+  gfx_set_foreground(display, &gc, rgb_color(240, 240, 240));
+  for (uint16_t x = 0; x < display->width; x += 20)
+  {
+    gfx_draw_line(display, &window, &gc, (int16_t)x, 0, (int16_t)x, (int16_t)(display->height - 1));
+  }
+  for (uint16_t y = 0; y < display->height; y += 20)
+  {
+    gfx_draw_line(display, &window, &gc, 0, (int16_t)y, (int16_t)(display->width - 1), (int16_t)y);
+  }
 
   gfx_flush(display);
 
