@@ -30,8 +30,8 @@ kernel.o: kernel.c
 src/%.o: src/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-kernel.elf: kernel_entry.o kernel.o src/arch/io.o src/drivers/driver.o src/drivers/vga.o src/drivers/bga.o src/drivers/keyboard.o src/graphics/gfx.o src/sys/init.o src/sys/panic.o src/sys/log.o src/sys/power.o src/sys/services.o src/sys/watchdog.o src/terminal/terminal.o src/shell/shell.o src/mm/heap.o src/proc/process.o src/proc/context.o linker.ld
-	$(LD) $(LDFLAGS) -o $@ kernel_entry.o kernel.o src/arch/io.o src/drivers/driver.o src/drivers/vga.o src/drivers/bga.o src/drivers/keyboard.o src/graphics/gfx.o src/sys/init.o src/sys/panic.o src/sys/log.o src/sys/power.o src/sys/services.o src/sys/watchdog.o src/terminal/terminal.o src/shell/shell.o src/mm/heap.o src/proc/process.o src/proc/context.o
+kernel.elf: kernel_entry.o kernel.o src/arch/io.o src/drivers/driver.o src/drivers/vga.o src/drivers/vga_gfx.o src/drivers/keyboard.o src/graphics/gfx.o src/sys/init.o src/sys/panic.o src/sys/log.o src/sys/power.o src/sys/services.o src/sys/watchdog.o src/terminal/terminal.o src/shell/shell.o src/mm/heap.o src/proc/process.o src/proc/context.o linker.ld
+	$(LD) $(LDFLAGS) -o $@ kernel_entry.o kernel.o src/arch/io.o src/drivers/driver.o src/drivers/vga.o src/drivers/vga_gfx.o src/drivers/keyboard.o src/graphics/gfx.o src/sys/init.o src/sys/panic.o src/sys/log.o src/sys/power.o src/sys/services.o src/sys/watchdog.o src/terminal/terminal.o src/shell/shell.o src/mm/heap.o src/proc/process.o src/proc/context.o
 
 $(KERNEL): kernel.elf
 	$(OBJCOPY) -O binary $< $@
@@ -45,7 +45,7 @@ $(OS_IMAGE): $(BOOTLOADER) $(KERNEL)
 	dd if=$(KERNEL) of=$@ seek=1 conv=notrunc
 
 run: $(OS_IMAGE)
-	$(QEMU) -vga std -drive format=raw,file=$(OS_IMAGE)
+	$(QEMU) -drive format=raw,file=$(OS_IMAGE)
 
 clean:
 	rm -f *.o *.elf src/arch/*.o src/drivers/*.o src/graphics/*.o src/sys/*.o src/terminal/*.o src/shell/*.o src/mm/*.o src/proc/*.o $(BOOTLOADER) $(KERNEL) $(OS_IMAGE)

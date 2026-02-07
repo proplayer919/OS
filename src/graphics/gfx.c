@@ -1,15 +1,15 @@
 #include "graphics/gfx.h"
-#include "drivers/bga.h"
+#include "drivers/vga_gfx.h"
 
 static gfx_display_t display0;
 
 gfx_display_t *gfx_open_display(void)
 {
-  display0.width = bga_width();
-  display0.height = bga_height();
-  display0.pitch = bga_pitch();
-  display0.buffer = bga_framebuffer();
-  display0.active = (uint8_t)bga_is_active();
+  display0.width = vga_gfx_width();
+  display0.height = vga_gfx_height();
+  display0.pitch = vga_gfx_pitch();
+  display0.buffer = vga_gfx_framebuffer();
+  display0.active = (uint8_t)vga_gfx_is_active();
   return &display0;
 }
 
@@ -30,7 +30,7 @@ gfx_window_t gfx_create_simple_window(gfx_display_t *display, int16_t x, int16_t
   return win;
 }
 
-gfx_gc_t gfx_create_gc(gfx_display_t *display, uint32_t color)
+gfx_gc_t gfx_create_gc(gfx_display_t *display, uint8_t color)
 {
   gfx_gc_t gc;
   (void)display;
@@ -38,7 +38,7 @@ gfx_gc_t gfx_create_gc(gfx_display_t *display, uint32_t color)
   return gc;
 }
 
-void gfx_set_foreground(gfx_display_t *display, gfx_gc_t *gc, uint32_t color)
+void gfx_set_foreground(gfx_display_t *display, gfx_gc_t *gc, uint8_t color)
 {
   (void)display;
   if (gc)
@@ -50,25 +50,25 @@ void gfx_set_foreground(gfx_display_t *display, gfx_gc_t *gc, uint32_t color)
 void gfx_map_window(gfx_display_t *display, gfx_window_t *window)
 {
   (void)window;
-  bga_enable();
+  vga_gfx_enter();
   if (display)
   {
     display->active = 1;
-    display->buffer = bga_framebuffer();
+    display->buffer = vga_gfx_framebuffer();
   }
 }
 
 void gfx_unmap_window(gfx_display_t *display, gfx_window_t *window)
 {
   (void)window;
-  bga_disable();
+  vga_gfx_leave();
   if (display)
   {
     display->active = 0;
   }
 }
 
-static void gfx_put_pixel(gfx_display_t *display, int16_t x, int16_t y, uint32_t color)
+static void gfx_put_pixel(gfx_display_t *display, int16_t x, int16_t y, uint8_t color)
 {
   if (!display || !display->buffer)
   {
@@ -82,10 +82,10 @@ static void gfx_put_pixel(gfx_display_t *display, int16_t x, int16_t y, uint32_t
   {
     return;
   }
-  display->buffer[(uint32_t)y * display->pitch + (uint32_t)x] = color;
+  display->buffer[(uint16_t)y * display->pitch + (uint16_t)x] = color;
 }
 
-void gfx_clear_window(gfx_display_t *display, gfx_window_t *window, uint32_t color)
+void gfx_clear_window(gfx_display_t *display, gfx_window_t *window, uint8_t color)
 {
   if (!display || !display->buffer || !window)
   {
@@ -99,7 +99,7 @@ void gfx_clear_window(gfx_display_t *display, gfx_window_t *window, uint32_t col
     {
       break;
     }
-    uint32_t base = (uint32_t)y * display->pitch;
+    uint16_t base = (uint16_t)(y * display->pitch);
     uint16_t xstart = (uint16_t)window->x;
     uint16_t xend = (uint16_t)(window->x + window->width);
     if (xstart >= display->width)
